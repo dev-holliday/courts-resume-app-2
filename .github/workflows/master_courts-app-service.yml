@@ -26,7 +26,7 @@ jobs:
           npm ci
           # if you have a prod config, this is even better:
           # npm run build -- --configuration production
-          npm run build
+          npm run build -- --configuration production
 
       - name: Login to Azure
         uses: azure/login@v2
