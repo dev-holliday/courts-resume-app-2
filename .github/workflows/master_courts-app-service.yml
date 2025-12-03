@@ -1,0 +1,42 @@
+name: Build and deploy Angular app to Azure Web App - courts-app-service
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'   # 20 is safer/more standard than 24 right now
+
+      - name: Install dependencies and build Angular app
+        run: |
+          npm ci
+          npm run build -- --output-path=dist/courts-resume-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_ABCEE7910848479C8512ED3182B720D0 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7F93580E182C42E08D760B855B0BD8B7 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_33352321A7964930A105112307ABDA5B }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'courts-app-service'
+          slot-name: 'Production'
+          package: dist/courts-resume-app
+          # ^^^^^ replace with your actual outputPath
