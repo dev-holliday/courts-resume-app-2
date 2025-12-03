@@ -18,20 +18,20 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'  # 24.x is very new; 18/20 is safer for builds
+          # Angular supports LTS, use 20.x instead of 24.x for now
+          node-version: '20.x'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Angular app
+      - name: Install dependencies and build
         run: |
-          npm run build -- --configuration=production
-          ls -R dist
+          npm ci
+          npm run build --if-present
 
-      - name: Upload artifact for deployment job
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: angular-build
+          name: angular-app
+          # 👇 THIS MUST POINT TO YOUR BUILD OUTPUT
+          # e.g. dist/courts-app/browser or dist/courts-app
           path: dist/courts-resume-app/browser
 
   deploy:
@@ -42,10 +42,10 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: angular-build
+          name: angular-app
           path: .
 
       - name: Login to Azure
@@ -55,10 +55,11 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7F93580E182C42E08D760B855B0BD8B7 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_33352321A7964930A105112307ABDA5B }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'courts-app-service'
           slot-name: 'Production'
-          # We downloaded the artifact into ".", which contains index.html, main.*.js, etc.
+          # 👇 Now "." is the built Angular app, not the entire repo
           package: .
