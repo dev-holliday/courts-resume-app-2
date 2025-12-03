@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies and build Angular app
         run: |
           npm ci
-          npm run build -- --configuration=production
+          npm run build -- --output-path=dist/courts-resume-app
 
       - name: Login to Azure
         uses: azure/login@v2
