@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: angular-build
-          path: dist/courts-resume-app/browser  # <-- UPDATE THIS TO YOUR REAL PATH
+          path: dist/courts-resume-app/browser*  # <-- UPDATE THIS TO YOUR REAL PATH
   deploy:
     runs-on: ubuntu-latest
     needs: build
