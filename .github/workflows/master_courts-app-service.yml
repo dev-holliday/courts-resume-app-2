@@ -18,18 +18,24 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'  # 24.x is bleeding edge, 18 or 20 is safer
+          node-version: '24.x'
 
-      - name: Install dependencies and build Angular app
-        run: |
-          npm ci
-          npm run build
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Angular app
+        run: npm run build --if-present
+        # if your build script is "ng build --configuration=production"
+        # this will run it
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: angular-build
-          path: dist/courts-resume-app/browser*  # <-- UPDATE THIS TO YOUR REAL PATH
+          name: angular-app
+          # ⬇️ IMPORTANT: ONLY upload the built dist folder, not the whole repo
+          path: dist\courts-resume-app\browser
+          # ^^^ replace "my-angular-app" with your actual project folder name
+
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -41,8 +47,8 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: angular-build
-          path: .  # downloads build into current dir
+          name: angular-app
+          path: ./dist-drop        # <- where to put the files
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -52,10 +58,9 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_33352321A7964930A105112307ABDA5B }}
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'courts-app-service'
           slot-name: 'Production'
-          package: .   # deploys the downloaded build (index.html + JS)
-
+          # ⬇️ IMPORTANT: deploy the dist output we just downloaded
+          package: ./dist-drop
