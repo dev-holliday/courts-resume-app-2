@@ -7,11 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -19,12 +18,31 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'   # 20 is safer/more standard than 24 right now
+          node-version: '20.x'  # 24.x is bleeding edge, 18 or 20 is safer
 
       - name: Install dependencies and build Angular app
         run: |
           npm ci
-          npm run build -- --configuration=production
+          npm run build
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build
+          path: dist/courts-resume-app/browser  # <-- UPDATE THIS TO YOUR REAL PATH
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-build
+          path: .  # downloads build into current dir
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -34,9 +52,10 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_33352321A7964930A105112307ABDA5B }}
 
       - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'courts-app-service'
           slot-name: 'Production'
-          package: dist/courts-resume-app
-          # ^^^^^ replace with your actual outputPath
+          package: .   # deploys the downloaded build (index.html + JS)
+
